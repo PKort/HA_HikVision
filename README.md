@@ -65,17 +65,17 @@ Configuration is pretty simple:
 
 After starting the addon look for the line like below:
 
-    [2025-02-01 10:47:29.322][INF] **Private connect $DOORBELL_STATIC_IP:8000 sock=169 this=0x8d3050c4 cmd=0x10100 port=50172**
-    2025-02-01 10:47:30.547 | DEBUG    | config:load_mqtt_config:129 - Loading MQTT configuration from supervisor
-    2025-02-01 10:47:30.548 | DEBUG    | config:mqtt_config_from_supervisor:36 - Requesting MQTT service configuration to supervisor
-    2025-02-01 10:47:30.556 | INFO     | sdk.utils:loadSDK:44 - Using OS: Linux with architecture: x86_64
-    loop[2] find 2 mac and 1 ip
-    [2025-02-01 10:47:30.613][DBG] CCoreGlobalCtrlBase::LoadDSo, HPR_LoadDSo Succ, Path[/lib/x86_64-linux-gnu/libz.so.1.2.11], hHandleRet[170114560]
-    [2025-02-01 10:47:30.617][DBG] CCoreGlobalCtrlBase::LoadDSo, HPR_LoadDSo Succ, Path[/app/lib-amd64/libcrypto.so], hHandleRet[173746768]
-    [2025-02-01 10:47:30.617][DBG] CCoreGlobalCtrlBase::LoadDSo, HPR_LoadDSo Succ, Path[/app/lib-amd64/libssl.so], hHandleRet[173768064]
-    2025-02-01 10:47:30.677 | INFO     | doorbell:authenticate:82 - **Connected to doorbell: Furtka**
-    2025-02-01 10:47:30.677 | INFO     | event:__init__:87 - Setting up event handler: Console stdout
-    2025-02-01 10:47:30.678 | INFO     | mqtt:__init__:114 - Setting up event handler: MQTT
+>    [2025-02-01 10:47:29.322][INF] **Private connect $DOORBELL_STATIC_IP:8000 sock=169 this=0x8d3050c4 cmd=0x10100 port=50172**
+>    2025-02-01 10:47:30.547 | DEBUG    | config:load_mqtt_config:129 - Loading MQTT configuration from supervisor
+>    2025-02-01 10:47:30.548 | DEBUG    | config:mqtt_config_from_supervisor:36 - Requesting MQTT service configuration to supervisor
+>    2025-02-01 10:47:30.556 | INFO     | sdk.utils:loadSDK:44 - Using OS: Linux with architecture: x86_64
+>    loop[2] find 2 mac and 1 ip
+>    [2025-02-01 10:47:30.613][DBG] CCoreGlobalCtrlBase::LoadDSo, HPR_LoadDSo Succ, Path[/lib/x86_64-linux-gnu/libz.so.1.2.11], hHandleRet[170114560]
+>    [2025-02-01 10:47:30.617][DBG] CCoreGlobalCtrlBase::LoadDSo, HPR_LoadDSo Succ, Path[/app/lib-amd64/libcrypto.so], hHandleRet[173746768]
+>    [2025-02-01 10:47:30.617][DBG] CCoreGlobalCtrlBase::LoadDSo, HPR_LoadDSo Succ, Path[/app/lib-amd64/libssl.so], hHandleRet[173768064]
+>    2025-02-01 10:47:30.677 | INFO     | doorbell:authenticate:82 - **Connected to doorbell: Furtka**
+>    2025-02-01 10:47:30.677 | INFO     | event:__init__:87 - Setting up event handler: Console stdout
+>    2025-02-01 10:47:30.678 | INFO     | mqtt:__init__:114 - Setting up event handler: MQTT
 
 ### 3.3.2 MQTT
 
