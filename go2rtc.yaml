@@ -1,0 +1,13 @@
+api:
+  password: $GO2RTC_ADMIN_PASSWORD
+  username: admin
+  tls_listen: ":1985" # default "", enable HTTPS server
+  tls_cert: /ssl/fullchain.pem
+  tls_key: /ssl/privkey.pem
+#rtsp:
+#  password: $GO2RTC_ADMIN_PASSWORD
+#  username: admin
+streams:
+  hikvision:
+    - rtsp://admin:$DORRBELL_ADMIN_PASSWORD@$DOORBELL_STATIC_IP_ADDRESS:554/Streaming/Channels/101#backchannel=0
+    - isapi://admin:$DORRBELL_ADMIN_PASSWOR@$DOORBELL_STATIC_IP_ADDRESS:80/
