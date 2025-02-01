@@ -10,7 +10,7 @@ Unfortunately I found that Hik-Connect app is very resource-hungry. When call bu
 I decived to move to more powerful tablet. I chose Xiaomi Redmi Pad Pro. It prooved to be much faster than Lenovo. Unfortunetely, after installing Hik-Connect, lag was also vevisible which became really annoying.
 So I decided to skip Hik-Connect app completely and rely only on Home Assistant to manage the doorbell.
 
-As of 20254-02-01 this document represents AS-IS setup, which may evolve in future based on new ideas or comments received. I will try to keep this document updated.
+As of 2025-02-01 this document represents AS-IS setup, which may evolve in future based on new ideas or comments received. I will try to keep this document updated.
 
 # 1. Hardware
 
