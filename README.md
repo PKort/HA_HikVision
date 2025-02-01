@@ -4,6 +4,14 @@ Integrating HikVision video doorbell within Home Assistant dashboard running on 
 
 I created this repository to gather all information related to integration of  HikVision video doorbell into my HomeAssistant-driven "smart home". Hopefully someone will find this information useful.
 
+I am planning to use Android-based tablet as my wallpanel to display the dashboard and communicate with doorbell.
+My first test tablet was LenovoTab M10 (TB-505XF). Initially I was thinking to simply install Hik-Connect application on the tablet and switch between Hik-Connect (for receiving calls and operating doorbell) and Home Assistant (to display the dashboard and control lights/AC/others).
+Unfortunately I found that Hik-Connect app is very resource-hungry. When call button was pressed in the doorbell, there was a few seconds lag before Hik-Connect app was displaying notification on the tablet. It was irritating.
+I decived to move to more powerful tablet. I chose Xiaomi Redmi Pad Pro. It prooved to be much faster than Lenovo. Unfortunetely, after installing Hik-Connect, lag was also vevisible which became really annoying.
+So I decided to skip Hik-Connect app completely and rely only on Home Assistant to manage the doorbell.
+
+As of 20254-02-01 this document represents AS-IS setup, which may evolve in future based on new ideas or comments received. I will try to keep this document updated.
+
 # 1. Hardware
 
 Regarding hardware used:
@@ -15,8 +23,9 @@ Regarding hardware used:
 
 I had following items configured in Home Asssistant
 1) SSL certficate - required to use 2-way audio in web browser. I use certificate from Let's Encrypt, installed on machine running Home Assistant. HA is available via HTTPS by NGINX reverse proxy. I chose port 8124. Config file attached as homeassistant-webgui
-2) MQTT
-3) Browser-mod - I use browser-mod popup to display video from doorbell on dashboard: 
+2) MQTT server - it will be used receive information about doorbell status and send actions like answer/reject/open lock
+3) HACS - used to install non-standard integrations into HA
+4) Browser-mod - I use browser-mod popup to display video from doorbell on dashboard: 
    https://github.com/thomasloven/hass-browser_mod
 Additionally I used iVMS-4200 installed on my Windows machine as well as Hik-Connect app on my phone for configuration of the doorbell.
 
@@ -114,6 +123,266 @@ Instead, I navigated to "links" and found the following:
 
 ![obraz](https://github.com/user-attachments/assets/c0fa41ae-d910-48e8-90d1-4e31d1a6ccf6)
 
-When I select the "video+audio+microphone" option, right-click on webrtc.html returns direct link to camera stream with 2-way audio. You need to access it via HTTPS, otherwise browsers will block use of local microphone. But if you open via HTTPS, browser will ask permission to use microphone and you can use mic and speakers of your device to communicate with doorbell.
+When I select the "video+audio+microphone" option, right-click on webrtc.html returns direct link to camera stream with 2-way audio. If you access it via HTTP,  browser will block use of local microphone and you get only 1-way audio (from doorbell to browser). If you open via HTTPS, browser will ask permission to use microphone and you can use mic and speakers of your device to communicate with doorbell in both directions.
 
+### 3.3.4 WebRTC (go2rtc) integration
 
+Next step is to install go2rtc integration. It is now called WebRTC and can be installed via HACS. Repo is below:
+
+<https://github.com/AlexxIT/WebRTC>
+
+but is should be available also directly from HACS.
+
+After you download WebRTC via HACS, it needs to be installed in the Home Assistant via Settings -> Devices and Services -> Integrations. Select WebRTC Camera and configure to use the AddOn. 
+
+Now we have all components in place to setup the dashboard.
+
+## 3.4 Wallplanel/Dashboard setup
+
+I installed Home Assistant on Redmi Pad Pro and registered as new device called dashboard. I have configured all suitable sensors within HA app. I have also registered the device in Browser Mod.
+Additionally I have granted some more rights to HA app in system settings:
+
+- Camera
+- Microphone
+- Draw Over Other Apps
+- Disabled any Battery management options
+
+I have created new Lovelace dashboard for the tablet. I called it DOM. This dashboard contains two views:
+
+- main view which displays all information and main controls
+- additional view for doorbell.
+
+General idea is following:
+
+- by default, main view is displayed
+- when Call button is pressed on the doorbell, popup window is displayed on the dashboard with view from the doorbell camera (with 1-way audio from camera) and buttons to Accept or Reject the call. There is also sound played on the dashboard to indicate incoming call
+- If the call is rejected in the popup, it disappears, call is rejected and sound playing stops
+- if the call is accepted in the popup, it disappears, sound playing stops and live view from the camera (with 2-way audio to communicate between doorbell and dashboard) and buttons to end the call or open the lock
+- After communication with doorbell is finished (either by call end or opening the lock), main view is restored on the tablet
+
+To facilitate above, I have created set of automations and scripts as below:
+
+1) Automation to display the popup window and play sound on the tablet when Call button is pressed:
+
+         alias: Doorbell_Calling
+         description: ""
+         triggers:
+           - trigger: state
+             entity_id:
+               - sensor.furtka_call_status
+             to: ringing
+         conditions: []
+         actions:
+           - action: media_player.turn_on
+             metadata: {}
+             data: {}
+             target:
+               device_id: $TABLET_BROWSER_ID
+             enabled: true
+           - action: browser_mod.popup
+             data:
+               dismissable: false
+               autoclose: true
+               browser_id:
+                 - $TABLET_BROWSER_ID
+               size: fullscreen
+               timeout: 60000
+               content:
+                 type: vertical-stack
+                 cards:
+                   - type: horizontal-stack
+                     cards:
+                       - type: custom:button-card
+                         name: Odrzuć
+                         icon: mdi:phone-hangup
+                         styles:
+                           card:
+                             - height: 128px
+                             - background-color: darkred
+                           icon:
+                             - color: null
+                         tap_action:
+                           action: call-service
+                           service: script.doorbell_reject
+                           service_data: {}
+                           target: {}
+                       - type: custom:button-card
+                         name: Odbierz
+                         icon: mdi:phone-check
+                         styles:
+                           card:
+                             - height: 128px
+                             - background-color: darkgreen
+                           icon:
+                             - color: null
+                         tap_action:
+                           action: call-service
+                           service: script.doorbell_answer
+                           service_data: {}
+                           target: {}
+                   - type: picture-glance
+                     camera_view: live
+                     aspect_ratio: "21:9"
+                     image: []
+                     entities: []
+                     camera_image: camera.furtka_preview
+                     tap_action: call-service
+                     service: script.doorbell_answer
+                     service_data: {}
+                     target: {}
+               timeout_action:
+                 action: call-service
+                 service: script.doorbell_hangup
+                 service_data: {}
+                 target: {}
+           - action: media_player.play_media
+             metadata: {}
+             data:
+               media_content_type: audio/mp3
+               media_content_id: media-source://media_source/muzyka/Benny_Hill_-_Main_Theme.mp3
+             target:
+               device_id: $TABLET_BROWSER_ID
+             enabled: true
+         mode: single
+
+2) Script doorbell_reject
+
+         sequence:
+           - device_id: $DOORBELL_DEVICE_ID
+             domain: button
+             entity_id: $DOORBELL_REJECT_BUTTON_ID
+             type: press
+           - action: media_player.media_stop
+             metadata: {}
+             data: {}
+             target:
+               device_id: $TABLET_DEVICE_ID
+           - action: browser_mod.close_popup
+             metadata: {}
+             data:
+               browser_id:
+                 - $TABLET_BROWSER_ID
+           - action: browser_mod.navigate
+             metadata: {}
+             data:
+               browser_id:
+                 - $TABLET_BROWSER_ID
+               path: /lovelace-dom/0
+         alias: Doorbell_Reject
+         description: ""
+         
+3) Script doorbell_answer
+
+         sequence:
+           - action: media_player.media_stop
+             metadata: {}
+             data: {}
+             target:
+               device_id: $TABLET_DEVICE_ID
+           - action: browser_mod.close_popup
+             metadata: {}
+             data:
+               browser_id:
+                 - $TABLET_BROWSER_ID
+           - action: browser_mod.navigate
+             metadata: {}
+             data:
+               browser_id:
+                 - $TABLET_BROWSER_ID
+               path: /lovelace-dom/1
+           - action: media_player.turn_off
+             metadata: {}
+             data: {}
+             target:
+               device_id: $TABLET_BROWSER_ID
+         alias: Doorbell_Answer
+         description: ""
+
+4) Additional view for doorbell video with 2-way audio
+         
+         type: custom:grid-layout
+         path: furtka
+         cards:
+           - type: horizontal-stack
+             cards:
+               - type: custom:button-card
+                 name: Odrzuć
+                 icon: mdi:phone-hangup
+                 styles:
+                   card:
+                     - height: 128px
+                     - background-color: darkred
+                     - animation: glow 1s easy 60s
+                   icon:
+                     - color: null
+                 tap_action:
+                   action: call-service
+                   service: script.doorbell_hangup
+                   service_data: {}
+                   target: {}
+               - type: custom:button-card
+                 name: Otwórz bramę
+                 icon: mdi:gate-arrow-left
+                 state_color: true
+                 styles:
+                   card:
+                     - height: 128px
+                     - color: gray
+                     - font-size: 14px
+                   icon:
+                     - color: gray
+                 tap_action:
+                   action: call-service
+                   service: script.gate_open_nowait
+                   service_data: {}
+                   target: {}
+                   styles: null
+                   card:
+                     - animation: blink 1s easy 30s
+               - type: custom:button-card
+                 name: Otwórz
+                 icon: mdi:phone-check
+                 styles:
+                   card:
+                     - height: 128px
+                     - background-color: darkgreen
+                     - animation: glow 1s easy 60s
+                   icon:
+                     - color: null
+                 tap_action:
+                   action: call-service
+                   service: script.doorbell_open
+                   service_data: {}
+                   target: {}
+           - type: custom:webrtc-camera
+             streams:
+               - url: rtsp://$SERVER_IP:8554/hikvision
+                 mode: webrtc
+                 media: video,audio,microphone
+                 aspect_ratio: "21:9"
+         title: Furtka
+         subview: false
+         icon: mdi:doorbell-video
+         visible:
+           - user: $USER_01
+           - user: $USER_02
+           - user: $USER_03
+
+5) Script doorbell_open
+
+         sequence:
+           - type: turn_on
+             device_id: $DOORBELL_DEVICE_ID
+             entity_id: $DOORBELL_LOCK_ENTITY_ID
+             domain: switch
+           - action: browser_mod.navigate
+             metadata: {}
+             data:
+               browser_id:
+                 - $TABLET_BROWSER_ID
+               path: /lovelace-dom/0
+         alias: Doorbell_Open
+         description: ""
+   
+
+EOF
